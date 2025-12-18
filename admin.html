@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Dashboard – Belief Hospitals</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #f8fafc; min-height: 100vh; }
+  .header { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); padding: 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  h1 { margin: 0; font-size: 1.2rem; color: #38bdf8; letter-spacing: 1px; }
+  .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
+  
+  /* GLASS CARDS */
+  .card { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 20px; margin-bottom: 15px; }
+  h3 { margin-top: 0; font-size: 0.9rem; color: #94a3b8; text-transform: uppercase; }
+
+  /* MODERN BUTTONS */
+  .btn-group { display: flex; gap: 10px; }
+  button { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; transition: 0.3s; color: white; }
+  .btn-green { background: #059669; } .btn-red { background: #dc2626; }
+  .btn-blue { background: #2563eb; } .btn-orange { background: #ea580c; }
+  .btn-main { background: linear-gradient(135deg, #0ea5e9, #2563eb); width: 100%; margin-top: 10px; font-size: 1rem; }
+  .btn-reset { background: transparent; border: 1px solid #475569; color: #94a3b8; width: 100%; margin-top: 15px; font-size: 0.8rem; }
+  
+  button:active { transform: scale(0.96); }
+  #msg { text-align: center; color: #38bdf8; font-weight: bold; margin-top: 10px; min-height: 20px; }
+</style>
+</head>
+<body>
+<div class="header"><h1>BELIEF ADMIN CONTROL</h1></div>
+<div class="container">
+  <div class="card"><h3>Hospital Status</h3><div class="btn-group"><button class="btn-green" onclick="update('hospital','OPEN')">OPEN</button><button class="btn-red" onclick="update('hospital','CLOSED')">CLOSED</button></div></div>
+  <div class="card"><h3>Parking Space</h3><div class="btn-group"><button class="btn-blue" onclick="update('parking','AVAILABLE')">AVAILABLE</button><button class="btn-orange" onclick="update('parking','FULL')">FULL</button></div></div>
+  <div class="card"><h3>Doctor Availability</h3><div class="btn-group"><button class="btn-green" onclick="update('doctor','yes')">PRESENT</button><button class="btn-red" onclick="update('doctor','no')">ABSENT</button></div></div>
+  <div class="card"><h3>Queue Management</h3><button class="btn-main" onclick="update('action','next')">CALL NEXT PATIENT</button><button class="btn-reset" onclick="resetDay()">RESET DAILY QUEUE</button></div>
+  <div id="msg"></div>
+</div>
+<script>
+const BASE = "https://script.google.com/macros/s/AKfycbwCGKfiunGH4TkD6vj3bVWHM4ioQERIIYUF-5L9teZYt6J2TqgwbMTBv1XWYalPjM5W/exec";
+const PIN = "1234"; 
+if(prompt("Admin Identity Verification") !== PIN) { document.body.innerHTML = "<h1>Unauthorized</h1>"; }
+
+function show(m){ document.getElementById("msg").innerText = m; setTimeout(()=>document.getElementById("msg").innerText="", 2000); }
+function update(type, val){
+  let url = type === 'action' ? `${BASE}?action=${val}` : `${BASE}?type=${type}&${type === 'doctor'?'available':type}=${val}`;
+  show("Updating..."); fetch(url).then(r=>r.json()).then(()=>show("✓ Data Synced"));
+}
+function resetDay(){ if(confirm("This will clear all tokens. Continue?")){ fetch(`${BASE}?action=reset`).then(()=>show("✓ System Reset")); } }
+</script>
+</body>
+</html>

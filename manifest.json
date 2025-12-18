@@ -1,0 +1,11 @@
+{
+  "name": "Belief Hospitals OP",
+  "short_name": "BeliefOP",
+  "start_url": "code.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e91e63",
+  "icons": [
+    { "src": "Belief-Hospitals.webp", "sizes": "512x512", "type": "image/webp" }
+  ]
+}

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Belief Hospitals</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.json">
+<style>
+/* MODERN GLASS UI */
+body{ margin:0; font-family:"Segoe UI",sans-serif; background:#f0f2f5; color:#1a1a1a; background: url("fertility-bg.jpg") no-repeat center center fixed; background-size:cover; padding-bottom: 80px; }
+.hero{ text-align:center; padding:30px 10px; }
+.hero img{ max-width:280px; border-radius:15px; box-shadow:0 10px 20px rgba(0,0,0,0.1); }
+.hero h1{ color:#e91e63; margin:15px 0 5px; font-size: 1.5rem; }
+.container{ max-width:500px; margin:auto; padding:15px; }
+.card{ background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 24px; padding: 20px; border: 1px solid rgba(255,255,255,0.4); box-shadow: 0 8px 32px rgba(0,0,0,0.08); margin-bottom:15px; }
+.status-open{color:#2e7d32;font-weight:700}
+.status-closed{color:#c62828;font-weight:700}
+.badge{ display:inline-block; padding:8px 18px; border-radius:50px; font-weight:700; font-size: 0.85rem; text-transform: uppercase; }
+.badge-open{background:#e8f5e9;color:#2e7d32}
+.badge-closed{background:#fdecea;color:#c62828}
+.footer{ text-align:center; padding:30px 0; color:#666; font-size: 0.9rem; }
+.pulse { animation: pulse-green 2s infinite; font-weight: 800; font-size: 1.1rem; }
+@keyframes pulse-green { 0% { color: #2e7d32; } 50% { color: #e91e63; transform: scale(1.02); } 100% { color: #2e7d32; } }
+
+/* FIXED BOTTOM NAVIGATION (ADDED) */
+.app-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.1); z-index: 9999; }
+.nav-item { text-decoration: none; color: #888; font-size: 12px; font-weight: 600; text-align: center; }
+.nav-item.active { color: #e91e63; }
+.nav-icon { font-size: 20px; display: block; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <img src="Belief-Hospitals.webp" alt="Belief Hospitals">
+  <h1>Belief Fertility & Baby Care</h1>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h3 style="margin-top:0; color:#333;">Live OP Queue</h3>
+    <p><strong>Now Serving:</strong> <span id="currentToken" style="font-size:1.2rem; color:#e91e63;">--</span></p>
+    <p><strong>Your Token:</strong> <span id="yourToken" style="font-size:1.2rem;">--</span></p>
+    <p><strong>Status:</strong> <span id="waitTime">--</span></p>
+  </div>
+  <div class="card" id="opBadge" style="text-align:center;"></div>
+  <div class="card" id="hospital"></div>
+  <div class="card" id="parking"></div>
+  <div class="card"><h3>Doctor Availability</h3><ul id="doctors" style="padding-left:20px;"></ul></div>
+  <div id="updated" style="text-align:center; font-size:0.8rem; color:#888;"></div>
+</div>
+
+<div class="footer">© Belief Hospitals</div>
+
+<nav class="app-nav">
+  <a href="code.html" class="nav-item active"><span class="nav-icon">📊</span>Status</a>
+  <a href="op.html" class="nav-item"><span class="nav-icon">📅</span>Book OP</a>
+</nav>
+
+<audio id="alertSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+<script>
+const SHEET_ID = "1OmQJWKals1sTt7GodHgSz2QcqtGInxF8JssMTPwlUoE";
+let lastNotifiedToken = 0;
+
+/* SERVICE WORKER REGISTRATION (ADDED) */
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+
+document.addEventListener('touchstart', initAudio, {once: true});
+document.addEventListener('click', initAudio, {once: true});
+
+function initAudio() {
+    const audio = document.getElementById('alertSound');
+    audio.play().then(() => { audio.pause(); audio.currentTime = 0; });
+}
+
+function parse(text){ return JSON.parse(text.substring(47).slice(0,-2)); }
+
+function loadHospital(){
+  fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=hospitals`).then(r=>r.text()).then(t=>{
+    const d=parse(t); const s=d.table.rows[1].c[0].v; const p=d.table.rows[1].c[1].v;
+    document.getElementById("hospital").innerHTML = `Hospital: <span class="${s==='OPEN'?'status-open':'status-closed'}">${s}</span>`;
+    document.getElementById("parking").innerText = "Parking: " + p;
+    document.getElementById("opBadge").innerHTML = `<span class="badge ${s==='OPEN'?'badge-open':'badge-closed'}">${s==='OPEN'?'OP RUNNING':'OP CLOSED'}</span>`;
+  });
+}
+
+function loadDoctors(){
+  fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=doctors`).then(r=>r.text()).then(t=>{
+    const d=parse(t); const ul=document.getElementById("doctors"); ul.innerHTML="";
+    for(let i=1;i<d.table.rows.length;i++){
+      const li=document.createElement("li"); 
+      li.style.marginBottom = "5px";
+      li.innerText = `${d.table.rows[i].c[0].v} – ${d.table.rows[i].c[1].v.toLowerCase()==='yes'?'Available':'Not Available'}`;
+      ul.appendChild(li);
+    }
+  });
+}
+
+function loadTokenStatus() {
+  const yourToken = parseInt(localStorage.getItem("yourToken")) || 0;
+  fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=token_status`).then(r => r.text()).then(t => {
+    const d = parse(t); const current = d.table.rows[0].c[0].v;
+    document.getElementById("currentToken").innerText = current;
+    document.getElementById("yourToken").innerText = yourToken > 0 ? yourToken : "None";
+
+    if (yourToken === current && yourToken > 0 && lastNotifiedToken !== current) {
+      document.getElementById("alertSound").play();
+      lastNotifiedToken = current;
+    }
+
+    const wt = document.getElementById("waitTime");
+    if (yourToken > 0 && yourToken < current) { wt.innerText = "Missed - see desk"; }
+    else if (yourToken === current && yourToken > 0) { wt.innerHTML = '<span class="pulse">Your Turn!</span>'; }
+    else if (yourToken === current + 1) { wt.innerText = "You are next"; }
+    else if (yourToken > current + 1) { wt.innerText = "~" + ((yourToken - current - 1) * 5) + " mins"; }
+    else { wt.innerText = "--"; }
+  });
+}
+
+function updateTime(){ document.getElementById("updated").innerText = "Sync: " + new Date().toLocaleTimeString(); }
+
+setInterval(()=>{ loadHospital(); loadDoctors(); loadTokenStatus(); updateTime(); }, 5000);
+loadHospital(); loadDoctors(); loadTokenStatus(); updateTime();
+</script>
+</body>
+</html>
